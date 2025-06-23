@@ -86,7 +86,7 @@ def create_issue(repo, title, body, dry_run=False, labels=None):
 def get_open_issue_titles(repo):
     # Get all open issue titles for repo in one go (up to 100)
     output = run_gh_command(
-        f"gh issue list --repo {repo} --state open --json title --limit 100", capture_json=True
+        f"gh issue list --repo {repo} --state open --json title", capture_json=True
     )
     if output is None:
         return set()
