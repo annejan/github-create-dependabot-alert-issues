@@ -1,4 +1,3 @@
-import io
 import subprocess
 import unittest
 from unittest.mock import Mock, mock_open, patch
@@ -6,21 +5,22 @@ from unittest.mock import Mock, mock_open, patch
 import alert2issue
 
 
+@patch("builtins.print")
 class TestScriptLogic(unittest.TestCase):
-    def test_load_repos(self):
+    def test_load_repos(self, mock_print):
         fake_data = "# comment\nuser/repo1\nuser/repo2  # inline\n\n"
         with patch("builtins.open", mock_open(read_data=fake_data)):
             result = alert2issue.load_repos("fakefile.txt")
             self.assertEqual(result, ["user/repo1", "user/repo2"])
 
     @patch("alert2issue.subprocess.run")
-    def test_ensure_label_skips_if_exists(self, mock_run):
+    def test_ensure_label_skips_if_exists(self, mock_run, mock_print):
         mock_run.return_value = Mock(stdout="security\tcolor\tdescription", returncode=0)
         alert2issue.ensure_label("test/repo", "security", "d73a4a", "desc", dry_run=False)
         mock_run.assert_called_once()
 
     @patch("alert2issue.subprocess.run")
-    def test_ensure_label_creates_new(self, mock_run):
+    def test_ensure_label_creates_new(self, mock_run, mock_print):
         mock_run.side_effect = [
             Mock(stdout="", returncode=0),  # label list
             Mock(returncode=0),  # label create
@@ -32,14 +32,14 @@ class TestScriptLogic(unittest.TestCase):
         self.assertIn("create", args)
 
     @patch("alert2issue.subprocess.run")
-    def test_create_issue_dry_run(self, mock_run):
+    def test_create_issue_dry_run(self, mock_run, mock_print):
         alert2issue.create_issue(
             "test/repo", "Test Title", "Test Body", dry_run=True, labels=["security"]
         )
         mock_run.assert_not_called()
 
     @patch("alert2issue.subprocess.run")
-    def test_create_issue_actual(self, mock_run):
+    def test_create_issue_actual(self, mock_run, mock_print):
         mock_run.return_value = Mock(returncode=0)
         alert2issue.create_issue(
             "test/repo", "Test Title", "Test Body", dry_run=False, labels=["security"]
@@ -52,7 +52,7 @@ class TestScriptLogic(unittest.TestCase):
         self.assertIn("Test Title", args)
 
     @patch("alert2issue.subprocess.run")
-    def test_run_gh_command_success(self, mock_run):
+    def test_run_gh_command_success(self, mock_run, mock_print):
         mock_run.return_value = Mock(stdout='{"key": "value"}', returncode=0)
         result = alert2issue.run_gh_command("gh test")
         self.assertEqual(result, {"key": "value"})
@@ -61,21 +61,24 @@ class TestScriptLogic(unittest.TestCase):
         "alert2issue.subprocess.run",
         side_effect=subprocess.CalledProcessError(1, "gh test", stderr="error"),
     )
-    def test_run_gh_command_failure(self, mock_run):
+    def test_run_gh_command_failure(self, mock_run, mock_print):
         result = alert2issue.run_gh_command("gh test")
         self.assertIsNone(result)
 
     @patch("alert2issue.run_gh_command")
-    def test_process_repo_no_alerts(self, mock_run):
+    def test_process_repo_no_alerts(self, mock_run, mock_print):
         mock_run.side_effect = [[], None]  # Empty alert list
-        with patch("sys.stdout", new_callable=io.StringIO) as mock_stdout:
-            alert2issue.process_repo("user/repo")
-            self.assertIn("No open dependabot alerts", mock_stdout.getvalue())
+        alert2issue.process_repo("user/repo")
+        print_calls = [call.args[0] for call in mock_print.call_args_list]
+        self.assertTrue(
+            any("No open dependabot alerts" in msg for msg in print_calls),
+            "Expected 'No open dependabot alerts' in printed output.",
+        )
 
     @patch("alert2issue.run_gh_command")
     @patch("alert2issue.ensure_label")
     @patch("alert2issue.create_issue")
-    def test_process_repo_with_alert(self, mock_create, mock_label, mock_run):
+    def test_process_repo_with_alert(self, mock_create, mock_label, mock_run, mock_print):
         mock_run.side_effect = [
             [  # Alerts
                 {
@@ -104,7 +107,7 @@ class TestScriptLogic(unittest.TestCase):
     @patch("alert2issue.run_gh_command")
     @patch("alert2issue.ensure_label")
     @patch("alert2issue.create_issue")
-    def test_process_repo_no_patch(self, mock_create, mock_label, mock_run):
+    def test_process_repo_no_patch(self, mock_create, mock_label, mock_run, mock_print):
         mock_run.side_effect = [
             [  # Alerts with no patch
                 {
@@ -124,23 +127,25 @@ class TestScriptLogic(unittest.TestCase):
             ],
             None,  # No existing issue
         ]
-        with patch("sys.stdout", new_callable=io.StringIO) as mock_out:
-            alert2issue.process_repo("user/repo", dry_run=True)
-            self.assertIn("no patched version", mock_out.getvalue().lower())
+        alert2issue.process_repo("user/repo", dry_run=True)
+        print_calls = [call.args[0].lower() for call in mock_print.call_args_list]
+        self.assertTrue(
+            any("no patched version" in msg for msg in print_calls),
+            "Expected 'no patched version' in printed output.",
+        )
 
     @patch("alert2issue.process_repo")
-    def test_main_missing_file(self, mock_process):
+    def test_main_missing_file(self, mock_process, mock_print):
         with (
             patch("sys.argv", ["script", "missing.txt"]),
             patch("pathlib.Path.exists", return_value=False),
-            patch("sys.stdout", new_callable=io.StringIO) as out,
         ):
             alert2issue.main()
-            self.assertIn("File not found", out.getvalue())
+            mock_print.assert_any_call("❌ File not found: missing.txt")
             mock_process.assert_not_called()
 
     @patch("alert2issue.process_repo")
-    def test_main_with_file(self, mock_process):
+    def test_main_with_file(self, mock_process, mock_print):
         with (
             patch("sys.argv", ["script", "repos.txt"]),
             patch("pathlib.Path.exists", return_value=True),

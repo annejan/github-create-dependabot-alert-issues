@@ -1,0 +1,19 @@
+[run]
+branch = True
+source = alert2issue
+omit =
+    */tests/*
+    */test_*.py
+    */__init__.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
+    except ImportError
+    def __repr__
+    def __str__
+
+show_missing = True
+skip_covered = False
+

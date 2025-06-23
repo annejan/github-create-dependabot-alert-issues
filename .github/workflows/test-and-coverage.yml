@@ -26,6 +26,6 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          coverage run --source=alert2issue -m unittest discover -s . -p 'test_*.py'
+          coverage run -m unittest
           coverage report
 

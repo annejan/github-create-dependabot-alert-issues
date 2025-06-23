@@ -66,9 +66,9 @@ pallets/flask  # Inline comment OK
 
 ## ✅ Requirements
 
-* Python 3.8+
-* GitHub CLI (`gh`)
-* GitHub token with `repo` scope if using private repositories
+- Python 3.8+
+- GitHub CLI (`gh`)
+- GitHub token with `repo` scope if using private repositories
 
 ---
 
@@ -83,7 +83,7 @@ python -m unittest test_alert2issue.py
 With code coverage:
 
 ```bash
-coverage run --source=alert2issue -m unittest discover
+coverage run -m unittest
 coverage report
 ```
 
