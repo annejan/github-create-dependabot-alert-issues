@@ -29,7 +29,7 @@ This helps teams triage and prioritize issues more easily within GitHub.
 - ✅ Lists open Dependabot alerts using the GitHub CLI
 - ✅ Avoids duplicate issues
 - ✅ Auto-labels issues with `security` and `dependabot`
-- ✅ Marks alerts with no patch as special warnings
+- ✅ Marks alerts with `no-patch` as special warnings
 - ✅ Supports dry-run mode for safe testing
 - ✅ Tested with unit tests and >80% coverage
 
@@ -48,6 +48,14 @@ Make sure you have the [GitHub CLI](https://cli.github.com/) (`gh`) installed an
 ```bash
 gh auth login
 ```
+
+---
+
+## ✅ Requirements
+
+- Python 3.8+
+- GitHub CLI (`gh`)
+- GitHub token with `repo` scope if using private repositories
 
 ---
 
@@ -72,9 +80,19 @@ alert2issue -d -m 200 repos.txt
 | `-d`  | `--dry-run`            | Run without creating issues or labels (preview only)                    |
 | `-m`  | `--min-rate-limit MIN` | Minimum number of GitHub API calls required to proceed (default: `100`) |
 
+#### 🧠 About `--min-rate-limit`
+
+GitHub’s API has [rate limits](https://docs.github.com/en/rest/overview/resources-in-the-rest-api#rate-limiting), especially for authenticated requests.
+
+Use `--min-rate-limit` to **avoid starting work if the remaining quota is too low**, this is useful for automation and CI environments.
+
+If the current rate limit is below the provided minimum, the script exits early with a warning.
+
+This ensures you have enough API calls left before processing begins so you don't break other more important automation.
+
 ---
 
-### 📄 Example repo list
+### 📄 Example repo list file content
 
 ```text
 # Only include public or authorized repos
@@ -82,14 +100,6 @@ annejan/alert2issue
 badgeteam/website       # Inline comment can be used
 IJHack/QtPass
 ```
-
----
-
-## ✅ Requirements
-
-- Python 3.8+
-- GitHub CLI (`gh`)
-- GitHub token with `repo` scope if using private repositories
 
 ---
 
