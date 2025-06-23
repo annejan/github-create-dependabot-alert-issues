@@ -1,0 +1,72 @@
+publiccodeYmlVersion: '0.4.0'
+
+name: alert2issue
+applicationSuite: ''
+url: 'https://github.com/annejan/github-create-dependabot-alert-issues'
+landingURL: 'https://pypi.org/project/alert2issue'
+softwareVersion: '0.1.1'
+releaseDate: '2025-06-23'
+
+developmentStatus: stable
+
+platforms:
+  - linux
+  - macos
+  - windows
+
+categories:
+  - application-development
+  - business-process-management
+  - compliance-management
+  - digital-asset-management
+  - enterprise-project-management
+  - project-management
+  - whistleblowing
+
+softwareType: standalone/other
+
+intendedAudience:
+  scope:
+    - science-and-technology
+    - manufacturing
+    - research
+
+
+description:
+  en:
+    localisedName: alert2issue
+    shortDescription: >
+      CLI tool to create GitHub issues from Dependabot security alerts.
+    longDescription: >
+      alert2issue is a Python command-line tool that checks GitHub repositories for open Dependabot security alerts
+      and automatically files issues to track unresolved vulnerabilities. It helps teams maintain security visibility and action items.
+    features:
+      - Query Dependabot alerts via GitHub CLI API
+      - Create GitHub issues with appropriate labels
+      - Supports dry-run mode
+      - Multi-repo support via input file
+
+legal:
+  license: MIT
+  mainCopyrightOwner: Anne Jan Brouwer
+  repoOwner: Anne Jan Brouwer
+
+maintenance:
+  type: community
+  contacts:
+    - name: Anne Jan Brouwer
+      email: "brouwer@annejan.com"
+
+localisation:
+  availableLanguages:
+    - en
+  localisationReady: false
+
+dependsOn:
+  open:
+    - name: Python
+      versionMin: '3.8'
+    - name: subprocess
+
+usedBy: []
+
