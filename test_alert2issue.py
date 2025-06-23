@@ -1,8 +1,7 @@
-import unittest
-from unittest.mock import patch, mock_open, Mock
-import subprocess
-import sys
 import io
+import subprocess
+import unittest
+from unittest.mock import Mock, mock_open, patch
 
 import alert2issue
 
@@ -34,13 +33,17 @@ class TestScriptLogic(unittest.TestCase):
 
     @patch("alert2issue.subprocess.run")
     def test_create_issue_dry_run(self, mock_run):
-        alert2issue.create_issue("test/repo", "Test Title", "Test Body", dry_run=True, labels=["security"])
+        alert2issue.create_issue(
+            "test/repo", "Test Title", "Test Body", dry_run=True, labels=["security"]
+        )
         mock_run.assert_not_called()
 
     @patch("alert2issue.subprocess.run")
     def test_create_issue_actual(self, mock_run):
         mock_run.return_value = Mock(returncode=0)
-        alert2issue.create_issue("test/repo", "Test Title", "Test Body", dry_run=False, labels=["security"])
+        alert2issue.create_issue(
+            "test/repo", "Test Title", "Test Body", dry_run=False, labels=["security"]
+        )
         mock_run.assert_called_once()
         args = mock_run.call_args[0][0]
         self.assertIn("--repo", args)
@@ -54,7 +57,10 @@ class TestScriptLogic(unittest.TestCase):
         result = alert2issue.run_gh_command("gh test")
         self.assertEqual(result, {"key": "value"})
 
-    @patch("alert2issue.subprocess.run", side_effect=subprocess.CalledProcessError(1, "gh test", stderr="error"))
+    @patch(
+        "alert2issue.subprocess.run",
+        side_effect=subprocess.CalledProcessError(1, "gh test", stderr="error"),
+    )
     def test_run_gh_command_failure(self, mock_run):
         result = alert2issue.run_gh_command("gh test")
         self.assertIsNone(result)
@@ -91,7 +97,9 @@ class TestScriptLogic(unittest.TestCase):
         ]
         alert2issue.process_repo("user/repo", dry_run=True)
         mock_create.assert_called_once()
-        mock_label.assert_any_call("user/repo", "security", "d73a4a", "Security-related issues", True)
+        mock_label.assert_any_call(
+            "user/repo", "security", "d73a4a", "Security-related issues", True
+        )
 
     @patch("alert2issue.run_gh_command")
     @patch("alert2issue.ensure_label")
@@ -122,14 +130,22 @@ class TestScriptLogic(unittest.TestCase):
 
     @patch("alert2issue.process_repo")
     def test_main_missing_file(self, mock_process):
-        with patch("sys.argv", ["script", "missing.txt"]), patch("pathlib.Path.exists", return_value=False), patch("sys.stdout", new_callable=io.StringIO) as out:
+        with (
+            patch("sys.argv", ["script", "missing.txt"]),
+            patch("pathlib.Path.exists", return_value=False),
+            patch("sys.stdout", new_callable=io.StringIO) as out,
+        ):
             alert2issue.main()
             self.assertIn("File not found", out.getvalue())
             mock_process.assert_not_called()
 
     @patch("alert2issue.process_repo")
     def test_main_with_file(self, mock_process):
-        with patch("sys.argv", ["script", "repos.txt"]), patch("pathlib.Path.exists", return_value=True), patch("alert2issue.load_repos", return_value=["user/repo"]):
+        with (
+            patch("sys.argv", ["script", "repos.txt"]),
+            patch("pathlib.Path.exists", return_value=True),
+            patch("alert2issue.load_repos", return_value=["user/repo"]),
+        ):
             alert2issue.main()
             mock_process.assert_called_once_with("user/repo", dry_run=False)
 
