@@ -1,12 +1,12 @@
 import unittest
-from unittest.mock import patch, mock_open, call
-from pathlib import Path
+from unittest.mock import patch, mock_open
 
 from alert2issue import (
     load_repos,
     ensure_label,
     create_issue,
 )
+
 
 class TestScriptLogic(unittest.TestCase):
 
@@ -18,7 +18,9 @@ class TestScriptLogic(unittest.TestCase):
 
     @patch("alert2issue.subprocess.run")
     def test_ensure_label_skips_if_exists(self, mock_run):
-        mock_run.return_value = unittest.mock.Mock(stdout="security\tcolor\tdescription", returncode=0)
+        mock_run.return_value = unittest.mock.Mock(
+            stdout="security\tcolor\tdescription", returncode=0
+        )
         ensure_label("test/repo", "security", "d73a4a", "desc", dry_run=False)
         mock_run.assert_called_once()  # Only `gh label list` should be called
 
@@ -26,7 +28,7 @@ class TestScriptLogic(unittest.TestCase):
     def test_ensure_label_creates_new(self, mock_run):
         mock_run.side_effect = [
             unittest.mock.Mock(stdout="", returncode=0),  # label list
-            unittest.mock.Mock(returncode=0)              # label create
+            unittest.mock.Mock(returncode=0),  # label create
         ]
         ensure_label("test/repo", "new-label", "abc123", "desc", dry_run=False)
         self.assertEqual(mock_run.call_count, 2)
@@ -36,13 +38,17 @@ class TestScriptLogic(unittest.TestCase):
 
     @patch("alert2issue.subprocess.run")
     def test_create_issue_dry_run(self, mock_run):
-        create_issue("test/repo", "Test Title", "Test Body", dry_run=True, labels=["security"])
+        create_issue(
+            "test/repo", "Test Title", "Test Body", dry_run=True, labels=["security"]
+        )
         mock_run.assert_not_called()
 
     @patch("alert2issue.subprocess.run")
     def test_create_issue_actual(self, mock_run):
         mock_run.return_value = unittest.mock.Mock(returncode=0)
-        create_issue("test/repo", "Test Title", "Test Body", dry_run=False, labels=["security"])
+        create_issue(
+            "test/repo", "Test Title", "Test Body", dry_run=False, labels=["security"]
+        )
         mock_run.assert_called_once()
         args = mock_run.call_args[0][0]
         self.assertIn("--repo", args)
@@ -50,6 +56,6 @@ class TestScriptLogic(unittest.TestCase):
         self.assertIn("--title", args)
         self.assertIn("Test Title", args)
 
+
 if __name__ == "__main__":
     unittest.main()
-
