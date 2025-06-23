@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "alert2issue"
+version = "0.1.0"
+description = "Automatically create GitHub issues from open Dependabot alerts"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Anne Jan Brouwer" }]
+dependencies = [
+    "requests",
+]
+keywords = ["Dependabot", "GitHub", "alert", "issue", "no-patch"]
+
+[project.scripts]
+alert2issue = "alert2issue:main"
+
+[project.urls]
+Homepage = "https://github.com/annejan/github-create-dependabot-alert-issues"
+
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+lint.select = ["E", "F", "I", "B"]  # E=pycodestyle, F=pyflakes, I=isort, B=bugbear
+lint.ignore = ["E501"]  # Optional: ignore long lines if Black handles them
+
+[tool.mypy]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+branch = true
+source = ["alert2issue"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+
+[tool.setuptools]
+py-modules = ["alert2issue"]
+
