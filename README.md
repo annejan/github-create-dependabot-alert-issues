@@ -78,8 +78,9 @@ alert2issue -d -m 200 repos.txt
 
 ```text
 # Only include public or authorized repos
-openai/gym
-pallets/flask  # Inline comment OK
+annejan/alert2issue
+badgeteam/website       # Inline comment can be used
+IJHack/QtPass
 ```
 
 ---
