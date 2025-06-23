@@ -12,6 +12,18 @@ It helps teams stay on top of security alerts by converting them into visible, a
 
 ---
 
+### ✨ Key Labels
+
+When creating issues, it applies useful labels to improve visibility:
+
+- **`security`** General security issue
+- **`dependabot`** Marks it as coming from a Dependabot alert
+- **`no-patch`** Special label if no fix is available for the vulnerability
+
+This helps teams triage and prioritize issues more easily within GitHub.
+
+---
+
 ## 📦 Features
 
 - ✅ Lists open Dependabot alerts using the GitHub CLI
@@ -19,7 +31,7 @@ It helps teams stay on top of security alerts by converting them into visible, a
 - ✅ Auto-labels issues with `security` and `dependabot`
 - ✅ Marks alerts with no patch as special warnings
 - ✅ Supports dry-run mode for safe testing
-- ✅ Tested with unit tests and coverage
+- ✅ Tested with unit tests and >80% coverage
 
 ---
 
@@ -47,14 +59,22 @@ Run the tool with a list of repositories (one per line):
 alert2issue path/to/repo-list.txt
 ```
 
-### Options
+You can also pass options:
 
-```text
---dry-run     Run without creating issues or labels (preview only)
---verbose     Print extra info
+```bash
+alert2issue -d -m 200 repos.txt
 ```
 
-### Example repo list
+### 🛠 Options
+
+| Short | Long                   | Description                                                             |
+| ----- | ---------------------- | ----------------------------------------------------------------------- |
+| `-d`  | `--dry-run`            | Run without creating issues or labels (preview only)                    |
+| `-m`  | `--min-rate-limit MIN` | Minimum number of GitHub API calls required to proceed (default: `100`) |
+
+---
+
+### 📄 Example repo list
 
 ```text
 # Only include public or authorized repos
@@ -72,37 +92,53 @@ pallets/flask  # Inline comment OK
 
 ---
 
-## 🧪 Testing
-
-To run tests:
-
-```bash
-python -m unittest test_alert2issue.py
-```
-
-With code coverage:
-
-```bash
-coverage run -m unittest
-coverage report
-```
-
----
-
 ## 📈 CI
 
-This project includes a GitHub Actions workflow that runs tests and linting.
+This project includes GitHub Actions workflows that runs tests and linting.
 
 ---
 
-## 🛠 Development Install (optional)
+## 🛠 Development
 
-If you want to run it from source:
+To contribute or run from source:
 
 ```bash
 git clone https://github.com/annejan/alert2issue.git
 cd alert2issue
-pip install -e .
+pip install -e .[dev]
+```
+
+### 🔍 Linting & Formatting
+
+This project uses [ruff](https://docs.astral.sh/ruff/) and [black](https://black.readthedocs.io/) for code style enforcement:
+
+```bash
+# Run ruff linter
+ruff check .
+
+# Auto-fix style issues
+ruff check . --fix
+
+# Format with black
+black .
+
+# Type check
+mypy *.py
+```
+
+### ✅ Testing
+
+Run unit tests with:
+
+```bash
+python -m unittest
+```
+
+With coverage:
+
+```bash
+coverage run -m unittest
+coverage report
 ```
 
 ---

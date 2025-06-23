@@ -209,6 +209,19 @@ class TestScriptLogic(unittest.TestCase):
             alert2issue.main()
         mock_process_repo.assert_called_once_with("user/repo", dry_run=False)
 
+    @patch("alert2issue.check_rate_limit")
+    @patch("pathlib.Path.exists", return_value=True)
+    @patch("alert2issue.load_repos", return_value=["user/repo"])
+    @patch("alert2issue.process_repo")
+    def test_main_min_rate_limit_arg(
+        self, mock_process, mock_load, mock_exists, mock_check_rate_limit, mock_print
+    ):
+        mock_check_rate_limit.return_value = True
+        with patch("sys.argv", ["script", "repos.txt", "--min-rate-limit", "50"]):
+            alert2issue.main()
+        mock_check_rate_limit.assert_called_once_with(min_remaining=50)
+        mock_process.assert_called_once_with("user/repo", dry_run=False)
+
 
 if __name__ == "__main__":
     unittest.main()

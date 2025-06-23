@@ -33,4 +33,3 @@ jobs:
 
       - name: Run mypy (type checking)
         run: mypy *.py
-

@@ -172,8 +172,16 @@ def main():
     parser.add_argument("repo_file", help="File containing list of GitHub repositories")
     parser.add_argument(
         "--dry-run",
+        "-d",
         action="store_true",
         help="Print actions but don't make any changes",
+    )
+    parser.add_argument(
+        "--min-rate-limit",
+        "-m",
+        type=int,
+        default=100,
+        help="Minimum remaining GitHub API calls required to proceed (default: 100)",
     )
     args = parser.parse_args()
 
@@ -182,7 +190,7 @@ def main():
         print(f"❌ File not found: {args.repo_file}")
         return
 
-    if not check_rate_limit():
+    if not check_rate_limit(min_remaining=args.min_rate_limit):
         print("❌ Exiting due to low GitHub API rate limit. Please try again later.")
         return
 
