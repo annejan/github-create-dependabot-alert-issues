@@ -9,9 +9,7 @@ from pathlib import Path
 
 def run_gh_command(cmd, capture_json=True):
     try:
-        result = subprocess.run(
-            shlex.split(cmd), capture_output=True, check=True, text=True
-        )
+        result = subprocess.run(shlex.split(cmd), capture_output=True, check=True, text=True)
         return json.loads(result.stdout) if capture_json else result.stdout.strip()
     except subprocess.CalledProcessError as e:
         print(f"❌ Command failed: {cmd}")
@@ -20,12 +18,8 @@ def run_gh_command(cmd, capture_json=True):
 
 
 def ensure_label(repo, label, color, description, dry_run=False):
-    existing = run_gh_command(
-        f"gh label list --repo {repo} --limit 100", capture_json=False
-    )
-    if not existing or not any(
-        line.startswith(label) for line in existing.splitlines()
-    ):
+    existing = run_gh_command(f"gh label list --repo {repo} --limit 100", capture_json=False)
+    if not existing or not any(line.startswith(label) for line in existing.splitlines()):
         action = "Would create" if dry_run else "Creating"
         print(f"🛠️ {action} label: {label} in {repo}")
         if dry_run:
@@ -93,16 +87,12 @@ def process_repo(repo, dry_run=False):
 
         fpv = alert["security_vulnerability"].get("first_patched_version")
         if fpv is None:
-            print(
-                f"⚠️  No patched version listed for {pkg} in {repo} (vulnerable range: {range_})"
-            )
+            print(f"⚠️  No patched version listed for {pkg} in {repo} (vulnerable range: {range_})")
         patched = fpv.get("identifier", "Not specified") if fpv else "Not specified"
 
         cves = (
             ", ".join(
-                i["value"]
-                for i in alert["security_advisory"]["identifiers"]
-                if i["type"] == "CVE"
+                i["value"] for i in alert["security_advisory"]["identifiers"] if i["type"] == "CVE"
             )
             or "None"
         )
@@ -132,9 +122,7 @@ def process_repo(repo, dry_run=False):
 
         labels = ["security", "dependabot"]
         if fpv is None:
-            ensure_label(
-                repo, "no-patch", "ededed", "No patched version available", dry_run
-            )
+            ensure_label(repo, "no-patch", "ededed", "No patched version available", dry_run)
             labels.append("no-patch")
 
         create_issue(repo, title, body, dry_run=dry_run, labels=labels)

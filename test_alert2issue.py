@@ -38,17 +38,13 @@ class TestScriptLogic(unittest.TestCase):
 
     @patch("alert2issue.subprocess.run")
     def test_create_issue_dry_run(self, mock_run):
-        create_issue(
-            "test/repo", "Test Title", "Test Body", dry_run=True, labels=["security"]
-        )
+        create_issue("test/repo", "Test Title", "Test Body", dry_run=True, labels=["security"])
         mock_run.assert_not_called()
 
     @patch("alert2issue.subprocess.run")
     def test_create_issue_actual(self, mock_run):
         mock_run.return_value = unittest.mock.Mock(returncode=0)
-        create_issue(
-            "test/repo", "Test Title", "Test Body", dry_run=False, labels=["security"]
-        )
+        create_issue("test/repo", "Test Title", "Test Body", dry_run=False, labels=["security"])
         mock_run.assert_called_once()
         args = mock_run.call_args[0][0]
         self.assertIn("--repo", args)
