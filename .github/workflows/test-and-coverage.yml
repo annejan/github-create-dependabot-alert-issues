@@ -1,4 +1,5 @@
 name: Test and Coverage
+permissions: {}
 
 on:
   push:

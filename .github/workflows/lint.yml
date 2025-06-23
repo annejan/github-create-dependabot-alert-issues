@@ -1,4 +1,5 @@
 name: Lint and Format
+permissions: {}
 
 on:
   push:
