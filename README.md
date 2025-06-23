@@ -91,7 +91,7 @@ coverage report
 
 ## 📈 CI
 
-This project includes a GitHub Actions workflow that runs tests and 
+This project includes a GitHub Actions workflow that runs tests and linting.
 
 ---
 
