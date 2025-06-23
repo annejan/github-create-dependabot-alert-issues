@@ -1,10 +1,10 @@
 import unittest
-from unittest.mock import patch, mock_open
+from unittest.mock import mock_open, patch
 
 from alert2issue import (
-    load_repos,
-    ensure_label,
     create_issue,
+    ensure_label,
+    load_repos,
 )
 
 

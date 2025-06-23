@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 import argparse
-import subprocess
 import json
 import shlex
+import subprocess
 from pathlib import Path
 
 
