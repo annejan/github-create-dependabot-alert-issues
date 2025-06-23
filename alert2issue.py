@@ -13,8 +13,27 @@ def run_gh_command(cmd, capture_json=True):
         return json.loads(result.stdout) if capture_json else result.stdout.strip()
     except subprocess.CalledProcessError as e:
         print(f"❌ Command failed: {cmd}")
-        print(e.stderr)
+        if e.stderr:
+            print(e.stderr)
         return None
+
+
+def check_rate_limit(min_remaining=100):
+    print("⏳ Checking GitHub API rate limit...")
+    remaining = run_gh_command('gh api rate_limit --jq ".rate.remaining"', capture_json=False)
+    if remaining is None:
+        print("⚠️ Could not determine API rate limit. Proceeding with caution.")
+        return True
+    try:
+        remaining_int = int(remaining)
+        print(f"🔢 API calls remaining: {remaining_int}")
+        if remaining_int < min_remaining:
+            print(f"❌ API rate limit too low (<{min_remaining}). Aborting.")
+            return False
+        return True
+    except ValueError:
+        print(f"⚠️ Unexpected rate limit value: {remaining}. Proceeding.")
+        return True
 
 
 def ensure_label(repo, label, color, description, dry_run=False):
@@ -64,8 +83,19 @@ def create_issue(repo, title, body, dry_run=False, labels=None):
         print(f"❌ Failed to create issue in {repo}: {title}")
 
 
+def get_open_issue_titles(repo):
+    # Get all open issue titles for repo in one go (up to 100)
+    output = run_gh_command(
+        f"gh issue list --repo {repo} --state open --json title", capture_json=True
+    )
+    if output is None:
+        return set()
+    return set(issue["title"] for issue in output)
+
+
 def process_repo(repo, dry_run=False):
     print(f"🔍 Checking alerts for: {repo}")
+
     alerts = run_gh_command(
         f'gh api -X GET "/repos/{repo}/dependabot/alerts?per_page=100" --paginate',
         capture_json=True,
@@ -73,6 +103,8 @@ def process_repo(repo, dry_run=False):
     if not alerts:
         print(f"✅ No open dependabot alerts found for {repo}.")
         return
+
+    open_issues = get_open_issue_titles(repo)
 
     for alert in alerts:
         if alert.get("state") != "open":
@@ -109,11 +141,7 @@ def process_repo(repo, dry_run=False):
 [View Alert]({url})
 """
 
-        existing = run_gh_command(
-            f'gh issue list --repo {repo} --search "{title} in:title" --state open --json title --jq ".[0].title"',
-            capture_json=False,
-        )
-        if existing == title:
+        if title in open_issues:
             print(f"⚠️  Issue already exists in {repo}: '{title}'. Skipping...")
             continue
 
@@ -152,6 +180,10 @@ def main():
     path = Path(args.repo_file)
     if not path.exists():
         print(f"❌ File not found: {args.repo_file}")
+        return
+
+    if not check_rate_limit():
+        print("❌ Exiting due to low GitHub API rate limit. Please try again later.")
         return
 
     for repo in load_repos(path):
