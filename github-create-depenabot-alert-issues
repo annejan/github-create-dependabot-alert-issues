@@ -8,9 +8,8 @@ from pathlib import Path
 
 def run_gh_command(cmd, capture_json=True):
     try:
-        full_cmd = shlex.split(cmd)
         result = subprocess.run(
-            full_cmd,
+            shlex.split(cmd),
             capture_output=True,
             check=True,
             text=True
@@ -22,8 +21,8 @@ def run_gh_command(cmd, capture_json=True):
         return None
 
 def ensure_label(repo, label, color, description, dry_run=False):
-    existing_labels = run_gh_command(f"gh label list --repo {repo} --limit 100", capture_json=False)
-    if not existing_labels or not any(line.startswith(label) for line in existing_labels.splitlines()):
+    existing = run_gh_command(f"gh label list --repo {repo} --limit 100", capture_json=False)
+    if not existing or not any(line.startswith(label) for line in existing.splitlines()):
         action = "Would create" if dry_run else "Creating"
         print(f"🛠️ {action} label: {label} in {repo}")
         if dry_run:
@@ -38,49 +37,60 @@ def ensure_label(repo, label, color, description, dry_run=False):
         except subprocess.CalledProcessError:
             print(f"⚠️  Failed to create label: {label} in {repo}")
 
-def create_issue(repo, title, body, dry_run=False):
+def create_issue(repo, title, body, dry_run=False, labels=None):
+    labels = labels or ["security", "dependabot"]
+
     if dry_run:
-        print(f"📝 Would create issue in {repo}:\n  Title: {title}\n  Body (truncated): {body[:100]}...")
+        print(f"📝 Would create issue in {repo}:\n  Title: {title}\n  Labels: {labels}\n  Body (truncated): {body[:100]}...")
         return
+
+    args = [
+        "gh", "issue", "create",
+        "--repo", repo,
+        "--title", title,
+        "--body", body
+    ]
+    for label in labels:
+        args.extend(["--label", label])
+
     try:
-        subprocess.run([
-            "gh", "issue", "create",
-            "--repo", repo,
-            "--title", title,
-            "--body", body,
-            "--label", "security",
-            "--label", "dependabot"
-        ], check=True)
+        subprocess.run(args, check=True)
         print(f"📝 Created issue in {repo}: {title}")
     except subprocess.CalledProcessError:
         print(f"❌ Failed to create issue in {repo}: {title}")
 
 def process_repo(repo, dry_run=False):
     print(f"🔍 Checking alerts for: {repo}")
-    alerts_json = run_gh_command(
+    alerts = run_gh_command(
         f'gh api -X GET "/repos/{repo}/dependabot/alerts?per_page=100" --paginate',
         capture_json=True
     )
-    if not alerts_json:
+    if not alerts:
         print(f"✅ No open dependabot alerts found for {repo}.")
         return
 
-    for alert in alerts_json:
-        if alert["state"] != "open":
+    for alert in alerts:
+        if alert.get("state") != "open":
             continue
 
         pkg = alert["security_vulnerability"]["package"]["name"]
         eco = alert["security_vulnerability"]["package"]["ecosystem"]
         sev = alert["security_advisory"]["severity"]
-        desc = alert["security_advisory"]["description"]
         range_ = alert["security_vulnerability"]["vulnerable_version_range"]
-        patched = (alert["security_vulnerability"].get("first_patched_version") or {}).get("identifier", "Not specified")
-        cves = ", ".join([i["value"] for i in alert["security_advisory"]["identifiers"] if i["type"] == "CVE"]) or "None"
-        url = alert["html_url"]
         created = alert["created_at"]
+        url = alert["html_url"]
 
-        issue_title = f"[Dependabot] Security Alert for: {pkg} ({eco})"
-        issue_body = f"""**Package:** {pkg} ({eco})
+        fpv = alert["security_vulnerability"].get("first_patched_version")
+        if fpv is None:
+            print(f"⚠️  No patched version listed for {pkg} in {repo} (vulnerable range: {range_})")
+        patched = fpv.get("identifier", "Not specified") if fpv else "Not specified"
+
+        cves = ", ".join(
+            i["value"] for i in alert["security_advisory"]["identifiers"] if i["type"] == "CVE"
+        ) or "None"
+
+        title = f"[Dependabot] Security Alert for: {pkg} ({eco})"
+        body = f"""**Package:** {pkg} ({eco})
 
 **Severity:** {sev}
 **Created At:** {created}
@@ -88,35 +98,30 @@ def process_repo(repo, dry_run=False):
 **Affected Versions:** {range_}
 **First Patched Version:** {patched}
 
-**DESCRIPTION:**
-{desc}
-
 [View Alert]({url})
 """
 
-        # Check for existing issue
-        existing_title = run_gh_command(
-            f'gh issue list --repo {repo} --search "{issue_title} in:title" --state open --json title --jq ".[0].title"',
+        existing = run_gh_command(
+            f'gh issue list --repo {repo} --search "{title} in:title" --state open --json title --jq ".[0].title"',
             capture_json=False
         )
-
-        if existing_title == issue_title:
-            print(f"⚠️  Issue already exists in {repo}: '{issue_title}'. Skipping...")
+        if existing == title:
+            print(f"⚠️  Issue already exists in {repo}: '{title}'. Skipping...")
             continue
 
         ensure_label(repo, "security", "d73a4a", "Security-related issues", dry_run)
         ensure_label(repo, "dependabot", "0366d6", "Dependabot alerts", dry_run)
 
-        create_issue(repo, issue_title, issue_body, dry_run)
+        labels = ["security", "dependabot"]
+        if fpv is None:
+            ensure_label(repo, "no-patch", "ededed", "No patched version available", dry_run)
+            labels.append("no-patch")
 
-def load_repos_from_file(path):
-    repos = []
+        create_issue(repo, title, body, dry_run=dry_run, labels=labels)
+
+def load_repos(path):
     with open(path) as f:
-        for line in f:
-            clean = line.split('#')[0].strip()
-            if clean:
-                repos.append(clean)
-    return repos
+        return [line.split('#')[0].strip() for line in f if line.strip() and not line.strip().startswith("#")]
 
 def main():
     parser = argparse.ArgumentParser(description="Check GitHub repos for Dependabot alerts and file issues.")
@@ -129,8 +134,7 @@ def main():
         print(f"❌ File not found: {args.repo_file}")
         return
 
-    repos = load_repos_from_file(path)
-    for repo in repos:
+    for repo in load_repos(path):
         process_repo(repo, dry_run=args.dry_run)
 
 if __name__ == "__main__":
