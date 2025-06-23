@@ -154,6 +154,61 @@ class TestScriptLogic(unittest.TestCase):
             alert2issue.main()
             mock_process.assert_called_once_with("user/repo", dry_run=False)
 
+    @patch("alert2issue.run_gh_command")
+    def test_check_rate_limit_ok(self, mock_run, mock_print):
+        mock_run.return_value = "150"
+        result = alert2issue.check_rate_limit(min_remaining=100)
+        self.assertTrue(result)
+        mock_print.assert_any_call("⏳ Checking GitHub API rate limit...")
+        mock_print.assert_any_call("🔢 API calls remaining: 150")
+
+    @patch("alert2issue.run_gh_command")
+    def test_check_rate_limit_low(self, mock_run, mock_print):
+        mock_run.return_value = "50"
+        result = alert2issue.check_rate_limit(min_remaining=100)
+        self.assertFalse(result)
+        mock_print.assert_any_call("❌ API rate limit too low (<100). Aborting.")
+
+    @patch("alert2issue.run_gh_command")
+    def test_check_rate_limit_none(self, mock_run, mock_print):
+        mock_run.return_value = None
+        result = alert2issue.check_rate_limit(min_remaining=100)
+        self.assertTrue(result)
+        mock_print.assert_any_call("⚠️ Could not determine API rate limit. Proceeding with caution.")
+
+    @patch("alert2issue.run_gh_command")
+    def test_check_rate_limit_bad_value(self, mock_run, mock_print):
+        mock_run.return_value = "not-an-int"
+        result = alert2issue.check_rate_limit(min_remaining=100)
+        self.assertTrue(result)
+        mock_print.assert_any_call("⚠️ Unexpected rate limit value: not-an-int. Proceeding.")
+
+    @patch("alert2issue.check_rate_limit")
+    def test_main_exits_on_low_rate_limit(self, mock_check_rate_limit, mock_print):
+        mock_check_rate_limit.return_value = False
+        with (
+            patch("sys.argv", ["script", "repos.txt"]),
+            patch("pathlib.Path.exists", return_value=True),
+        ):
+            alert2issue.main()
+        mock_print.assert_any_call(
+            "❌ Exiting due to low GitHub API rate limit. Please try again later."
+        )
+
+    @patch("alert2issue.check_rate_limit")
+    @patch("alert2issue.load_repos", return_value=["user/repo"])
+    @patch("alert2issue.process_repo")
+    def test_main_runs_when_rate_limit_ok(
+        self, mock_process_repo, mock_load_repos, mock_check_rate_limit, mock_print
+    ):
+        mock_check_rate_limit.return_value = True
+        with (
+            patch("sys.argv", ["script", "repos.txt"]),
+            patch("pathlib.Path.exists", return_value=True),
+        ):
+            alert2issue.main()
+        mock_process_repo.assert_called_once_with("user/repo", dry_run=False)
+
 
 if __name__ == "__main__":
     unittest.main()
