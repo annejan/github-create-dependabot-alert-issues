@@ -19,13 +19,16 @@ def run_gh_command(cmd: str, capture_json: bool = True) -> str | dict | None:
         return None
 
 
-def run_gh_command_json(cmd: str) -> list[dict] | None:
+def run_gh_command_json(cmd: str) -> dict | list[dict] | None:
     """Run a GitHub CLI command and return the output as JSON."""
     output = run_gh_command(cmd, capture_json=True)
     if output is None:
         return None
 
-    return output if isinstance(output, list) else json.loads(output)
+    if isinstance(output, (dict, list)):
+        return output
+
+    return json.loads(output)
 
 
 def run_gh_command_text(cmd: str) -> str | None:
