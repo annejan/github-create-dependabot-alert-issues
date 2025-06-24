@@ -222,6 +222,33 @@ class TestScriptLogic(unittest.TestCase):
         mock_check_rate_limit.assert_called_once_with(min_remaining=50)
         mock_process.assert_called_once_with("user/repo", dry_run=False)
 
+    @patch("alert2issue.run_gh_command_json")
+    @patch("alert2issue.ensure_label")
+    @patch("alert2issue.create_issue")
+    def test_alert_identifiers_dict_or_list(self, mock_create, mock_label, mock_run, mock_print):
+        mock_create.reset_mock()
+        mock_run.side_effect = [
+            [
+                {
+                    "state": "open",
+                    "created_at": "2024-01-01T00:00:00Z",
+                    "html_url": "https://github.com/example/alert2",
+                    "security_vulnerability": {
+                        "package": {"name": "package2", "ecosystem": "pip"},
+                        "vulnerable_version_range": "<2.0.0",
+                        "first_patched_version": {"identifier": "2.0.0"},
+                    },
+                    "security_advisory": {
+                        "severity": "MODERATE",
+                        "identifiers": [{"type": "CVE", "value": "CVE-2025-0002"}],
+                    },
+                }
+            ],
+            None,
+        ]
+        alert2issue.process_repo("user/repo", dry_run=True)
+        mock_create.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()
