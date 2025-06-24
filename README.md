@@ -4,8 +4,6 @@
 
 [![PyPI version](https://badge.fury.io/py/alert2issue.svg)](https://badge.fury.io/py/alert2issue)
 
-🔐 Automatically create GitHub issues from open Dependabot alerts — complete with severity, CVE info, and tagging.
-
 ---
 
 ## 🚀 What It Does
