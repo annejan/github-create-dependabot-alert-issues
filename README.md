@@ -35,13 +35,21 @@ This helps teams triage and prioritize issues more easily within GitHub.
 
 ---
 
+## ✅ Requirements
+
+- Python 3.8+
+- GitHub CLI (`gh`)
+- GitHub token with `repo` scope if using private repositories
+
+---
+
 ## 📦 Installation
 
 Install via [PyPI](https://pypi.org/project/alert2issue/):
 
 ```bash
 pip install alert2issue
-````
+```
 
 Make sure you have the [GitHub CLI](https://cli.github.com/) (`gh`) installed and authenticated:
 
@@ -51,15 +59,14 @@ gh auth login
 
 ---
 
-## ✅ Requirements
-
-- Python 3.8+
-- GitHub CLI (`gh`)
-- GitHub token with `repo` scope if using private repositories
-
----
-
 ## ⚙️ Usage
+
+```bash
+# Quick example
+echo "annejan/woo_data_playground" > repos.txt
+alert2issue repos.txt
+# ✅ Created issue: "[Dependabot] Security Alert for: requests (pip)"
+```
 
 Run the tool with a list of repositories (one per line):
 
