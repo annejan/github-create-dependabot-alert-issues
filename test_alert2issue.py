@@ -65,7 +65,7 @@ class TestScriptLogic(unittest.TestCase):
         result = alert2issue.run_gh_command("gh test")
         self.assertIsNone(result)
 
-    @patch("alert2issue.run_gh_command")
+    @patch("alert2issue.run_gh_command_json")
     def test_process_repo_no_alerts(self, mock_run, mock_print):
         mock_run.side_effect = [[], None]  # Empty alert list
         alert2issue.process_repo("user/repo")
@@ -75,7 +75,7 @@ class TestScriptLogic(unittest.TestCase):
             "Expected 'No open dependabot alerts' in printed output.",
         )
 
-    @patch("alert2issue.run_gh_command")
+    @patch("alert2issue.run_gh_command_json")
     @patch("alert2issue.ensure_label")
     @patch("alert2issue.create_issue")
     def test_process_repo_with_alert(self, mock_create, mock_label, mock_run, mock_print):
@@ -104,7 +104,7 @@ class TestScriptLogic(unittest.TestCase):
             "user/repo", "security", "d73a4a", "Security-related issues", True
         )
 
-    @patch("alert2issue.run_gh_command")
+    @patch("alert2issue.run_gh_command_json")
     @patch("alert2issue.ensure_label")
     @patch("alert2issue.create_issue")
     def test_process_repo_no_patch(self, mock_create, mock_label, mock_run, mock_print):
