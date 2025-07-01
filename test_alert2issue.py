@@ -54,15 +54,16 @@ class TestScriptLogic(unittest.TestCase):
     @patch("alert2issue.subprocess.run")
     def test_run_gh_command_success(self, mock_run, mock_print):
         mock_run.return_value = Mock(stdout='{"key": "value"}', returncode=0)
-        result = alert2issue.run_gh_command("gh test")
-        self.assertEqual(result, {"key": "value"})
+        result = alert2issue._run_gh_command_raw("gh test")
+        self.assertIsNotNone(result)
+        self.assertEqual(result.stdout, '{"key": "value"}')
 
     @patch(
         "alert2issue.subprocess.run",
         side_effect=subprocess.CalledProcessError(1, "gh test", stderr="error"),
     )
     def test_run_gh_command_failure(self, mock_run, mock_print):
-        result = alert2issue.run_gh_command("gh test")
+        result = alert2issue._run_gh_command_raw("gh test")
         self.assertIsNone(result)
 
     @patch("alert2issue.run_gh_command_json")
@@ -154,31 +155,31 @@ class TestScriptLogic(unittest.TestCase):
             alert2issue.main()
             mock_process.assert_called_once_with("user/repo", dry_run=False)
 
-    @patch("alert2issue.run_gh_command")
-    def test_check_rate_limit_ok(self, mock_run, mock_print):
-        mock_run.return_value = "150"
+    @patch("alert2issue.run_gh_command_text")
+    def test_check_rate_limit_ok(self, mock_run_text, mock_print):
+        mock_run_text.return_value = "150"
         result = alert2issue.check_rate_limit(min_remaining=100)
         self.assertTrue(result)
         mock_print.assert_any_call("⏳ Checking GitHub API rate limit...")
         mock_print.assert_any_call("🔢 API calls remaining: 150")
 
-    @patch("alert2issue.run_gh_command")
-    def test_check_rate_limit_low(self, mock_run, mock_print):
-        mock_run.return_value = "50"
+    @patch("alert2issue.run_gh_command_text")
+    def test_check_rate_limit_low(self, mock_run_text, mock_print):
+        mock_run_text.return_value = "50"
         result = alert2issue.check_rate_limit(min_remaining=100)
         self.assertFalse(result)
         mock_print.assert_any_call("❌ API rate limit too low (<100). Aborting.")
 
-    @patch("alert2issue.run_gh_command")
-    def test_check_rate_limit_none(self, mock_run, mock_print):
-        mock_run.return_value = None
+    @patch("alert2issue.run_gh_command_text")
+    def test_check_rate_limit_none(self, mock_run_text, mock_print):
+        mock_run_text.return_value = None
         result = alert2issue.check_rate_limit(min_remaining=100)
         self.assertTrue(result)
         mock_print.assert_any_call("⚠️ Could not determine API rate limit. Proceeding with caution.")
 
-    @patch("alert2issue.run_gh_command")
-    def test_check_rate_limit_bad_value(self, mock_run, mock_print):
-        mock_run.return_value = "not-an-int"
+    @patch("alert2issue.run_gh_command_text")
+    def test_check_rate_limit_bad_value(self, mock_run_text, mock_print):
+        mock_run_text.return_value = "not-an-int"
         result = alert2issue.check_rate_limit(min_remaining=100)
         self.assertTrue(result)
         mock_print.assert_any_call("⚠️ Unexpected rate limit value: not-an-int. Proceeding.")
