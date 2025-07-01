@@ -3,15 +3,19 @@
 import argparse
 import json
 import shlex
+import shutil
 import subprocess
 from pathlib import Path
 
 
-def run_gh_command(cmd: str, capture_json: bool = True) -> str | dict | None:
-    """Run a GitHub CLI command and return the output as JSON or plain text."""
+def _run_gh_command_raw(cmd: str) -> subprocess.CompletedProcess | None:
+    """Run a GitHub CLI command and return the raw CompletedProcess object or None on error."""
     try:
         result = subprocess.run(shlex.split(cmd), capture_output=True, check=True, text=True)
-        return json.loads(result.stdout) if capture_json else result.stdout.strip()
+        return result
+    except FileNotFoundError:
+        print("❌ Command not found. Please ensure `gh` is installed and in your PATH.")
+        return None
     except subprocess.CalledProcessError as e:
         print(f"❌ Command failed: {cmd}")
         if e.stderr:
@@ -21,23 +25,22 @@ def run_gh_command(cmd: str, capture_json: bool = True) -> str | dict | None:
 
 def run_gh_command_json(cmd: str) -> dict | list[dict] | None:
     """Run a GitHub CLI command and return the output as JSON."""
-    output = run_gh_command(cmd, capture_json=True)
-    if output is None:
+    raw_result = _run_gh_command_raw(cmd)
+    if raw_result is None:
         return None
-
-    if isinstance(output, (dict, list)):
-        return output
-
-    return json.loads(output)
+    try:
+        return json.loads(raw_result.stdout)
+    except json.JSONDecodeError:
+        print(f"❌ Failed to parse JSON output from command: {cmd}")
+        return None
 
 
 def run_gh_command_text(cmd: str) -> str | None:
     """Run a GitHub CLI command and return the output as plain text."""
-    output = run_gh_command(cmd, capture_json=False)
-    if output is None:
+    raw_result = _run_gh_command_raw(cmd)
+    if raw_result is None:
         return None
-
-    return output if isinstance(output, str) else json.dumps(output, indent=2)
+    return raw_result.stdout.strip()
 
 
 def check_rate_limit(min_remaining: int = 100) -> bool:
@@ -116,8 +119,10 @@ def create_issue(
 
 def get_open_issue_titles(repo: str) -> set[str]:
     """Get titles of all open issues in the specified repository."""
-    # Get all open issue titles for repo in one go (up to 100)
-    output = run_gh_command_json(f"gh issue list --repo {repo} --state open --json title")
+    # Get all open issue titles for repo in one go (by default this is 30)
+    output = run_gh_command_json(
+        f"gh issue list --repo {repo} --state open --json title --limit 1000"
+    )
     if output is None:
         return set()
 
@@ -128,8 +133,10 @@ def process_repo(repo: str, dry_run: bool = False) -> None:
     """Process a single repository to check for Dependabot alerts and create issues."""
     print(f"🔍 Checking alerts for: {repo}")
 
+    # Use --paginate and --slurp to fetch all pages of alerts and combine them
+    # into a single JSON array, preventing issues with the 100-item-per-page limit.
     alerts = run_gh_command_json(
-        f'gh api -X GET "/repos/{repo}/dependabot/alerts?per_page=100" --paginate',
+        f'gh api -X GET "/repos/{repo}/dependabot/alerts?per_page=100" --paginate --slurp'
     )
     if not alerts:
         print(f"✅ No open dependabot alerts found for {repo}.")
@@ -215,6 +222,10 @@ def load_repos(path: Path) -> list[str]:
 
 
 def main():
+    if not shutil.which("gh"):
+        print("❌ GitHub CLI (`gh`) not found. Please install it from https://cli.github.com/")
+        return
+
     parser = argparse.ArgumentParser(
         description="Check GitHub repos for Dependabot alerts and file issues."
     )
