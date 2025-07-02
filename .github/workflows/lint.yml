@@ -4,10 +4,10 @@ permissions: {}
 on:
   push:
     paths:
-      - '**.py'
+      - "**.py"
   pull_request:
     paths:
-      - '**.py'
+      - "**.py"
 
 jobs:
   lint:
@@ -20,8 +20,8 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
 
       - name: Install dependencies
         run: uv sync --extra dev
@@ -34,3 +34,4 @@ jobs:
 
       - name: Run mypy (type checking)
         run: uv run mypy *.py
+

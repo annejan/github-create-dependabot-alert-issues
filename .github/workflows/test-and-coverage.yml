@@ -3,9 +3,9 @@ permissions: {}
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   test:
@@ -20,8 +20,8 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
 
       - name: Install dependencies
         run: uv sync --extra dev
@@ -30,3 +30,4 @@ jobs:
         run: |
           uv run python -m coverage run -m unittest
           uv run python -m coverage report --fail-under=80
+
