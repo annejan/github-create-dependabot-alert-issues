@@ -28,5 +28,5 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          uv run coverage run -m unittest
-          uv run coverage report --fail-under=80
+          uv run python -m coverage run -m unittest
+          uv run python -m coverage report --fail-under=80
