@@ -1,7 +1,0 @@
-build
-requests
-coverage
-ruff
-black
-mypy
-twine
